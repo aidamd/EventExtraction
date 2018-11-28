@@ -1,6 +1,8 @@
 from collections import Counter
 import operator
 import numpy as np
+from nltk.corpus import wordnet, stopwords
+import re
 
 def get_vocabs():
     # Gets the list of words and characters in the dataset
@@ -25,3 +27,19 @@ def bag_to_ids(dic, bag):
             i_sent.append(dic["<pad>"])
         i_bag.append(np.array(i_sent))
     return np.array(i_bag), max_len, lengths
+
+def stop_words(sent):
+    stop_words = set(stopwords.words('english'))
+    stop_words_exp = re.compile(r"({})\s+".format('|'.join(stop_words)))
+    try:
+        new_sent = stop_words_exp.sub(' ', sent)
+    except TypeError:
+        print(sent)
+        new_sent = []
+    return new_sent
+
+
+def clean(sent):
+    sent = stop_words(sent)
+    sent = re.sub(r"[\s]+", " ", sent)
+    return sent

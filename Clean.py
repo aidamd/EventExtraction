@@ -1,5 +1,6 @@
 import mysql.connector
 import  pandas as pd
+import re
 
 def readPatch():
     config = {
@@ -27,6 +28,8 @@ def readPatch():
     """
     df = df.drop_duplicates(subset = ['title'])
     print("Number of documents in Patch after removing duplicates: ", df.shape[0])
+    for idx, row in df.iterrows():
+        df.at[idx, "text"] = re.sub(r"([A-Z]| )+, ([A-Z][A-Z]) [-|—|–]", "", row["text"]).lstrip()
     df.to_csv("patch.csv")
 
 def readPropublica():
@@ -48,4 +51,7 @@ def readPropublica():
     for idx, row in df.iterrows():
         row["title"].replace(row["source"], "")
     df.to_csv("propublica.csv")
+
+
+readPatch()
 

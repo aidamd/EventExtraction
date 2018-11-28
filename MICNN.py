@@ -92,7 +92,7 @@ class MICNN():
         # High rank sentences
         high_count = tf.ceil(tf.scalar_mul(0.2, tf.to_float(self.batch_size)))
 
-        a= tf.reshape(fc_drop, [self.batch_size])
+        a = tf.reshape(fc_drop, [self.batch_size])
         b = tf.cast(high_count, tf.int32)
 
         self.highests = tf.nn.top_k(a, b)
@@ -112,7 +112,7 @@ class MICNN():
 
         self.training_op = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.loss)
 
-    def run_model(self, batches, test_batches):
+    def run_model(self, batches, dev_batches, test_batches):
         init = tf.global_variables_initializer()
         with tf.Session() as self.sess:
             #init.run()
@@ -125,13 +125,13 @@ class MICNN():
                 train_correct = 0
                 train = 0
                 for batch in batches:
-                    X_batch, X_len, y_batch = batch
+                    X_batch, X_len, hate, _, _ = batch
                     if len(X_batch) == 1:
                         continue
                     feed_dict = {self.train_inputs: X_batch,
                                 self.sequence_length: X_len,
                                 self.keep_prob: self.keep_ratio,
-                                self.output: [y_batch],
+                                self.output: [hate],
                                 self.batch_size: len(X_batch)
                                  }
 
@@ -139,7 +139,7 @@ class MICNN():
                         feed_dict[self.embedding_placeholder] = self.my_embeddings
                     loss_val, predictions_, _ = self.sess.run([self.loss, self.predicted_label, self.training_op], feed_dict= feed_dict)
                     train += 1
-                    if predictions_ == y_batch:
+                    if predictions_ == hate:
                         train_correct += 1
                     epoch_loss += loss_val
                 ## Test
@@ -147,11 +147,11 @@ class MICNN():
                 test = 0
                 y_true = list()
                 y_pred = list()
-                for X_batch, X_len, y_batch in test_batches:
+                for X_batch, X_len, hate, _, _ in dev_batches:
                     feed_dict = {self.train_inputs: X_batch,
                                  self.sequence_length: X_len,
                                  self.keep_prob: 1,
-                                 self.output: [y_batch],
+                                 self.output: [hate],
                                  self.batch_size: len(X_batch)
                                  }
                     if self.pretrain:
@@ -159,8 +159,8 @@ class MICNN():
                     try:
                         predictions_ = self.predicted_label.eval(feed_dict=feed_dict)
                         y_pred.append(predictions_)
-                        y_true.append(y_batch)
-                        if predictions_ == y_batch:
+                        y_true.append(hate)
+                        if predictions_ == hate:
                             test_correct += 1
                         test += 1
                     except Exception:
@@ -173,4 +173,20 @@ class MICNN():
 
                 if epoch == self.epochs:
                     break
-        return
+            y_pred = list()
+            """
+            for X_batch, X_len in test_batches:
+                feed_dict = {self.train_inputs: X_batch,
+                             self.sequence_length: X_len,
+                             self.keep_prob: 1,
+                             self.batch_size: len(X_batch)
+                             }
+                if self.pretrain:
+                    feed_dict[self.embedding_placeholder] = self.my_embeddings
+                try:
+                    predictions_ = self.predicted_label.eval(feed_dict=feed_dict)
+                    y_pred.append(predictions_)
+                except Exception:
+                    print()
+            """
+        return y_pred
